@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flintridge Holdings — Finance OS</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold-light:#E8C97A;
+  --dark:#0A0A0A;--dark2:#111111;--dark3:#1A1A1A;--dark4:#222222;
+  --border:#2A2A2A;--text:#F0EFE8;--text2:#A0A09A;--text3:#606058;
+  --green:#2ECC71;--red:#E74C3C;--blue:#3B8BD4;--purple:#7F77DD;--amber:#EF9F27;
+  --teal:#1D9E75;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--dark);color:var(--text);font-family:'Helvetica Neue',Arial,sans-serif;font-size:14px;height:100vh;overflow:hidden}
+#app{display:flex;height:100vh}
+
+/* Sidebar */
+#sidebar{width:230px;background:var(--dark2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+#logo .holdco{font-size:11px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+#logo .brand{font-size:15px;font-weight:700;color:var(--text);margin-top:2px}
+#logo .sub{font-size:10px;color:var(--text3);margin-top:2px}
+nav{flex:1;padding:6px 0;overflow-y:auto}
+.nav-section{padding:14px 16px 4px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;color:var(--text2);transition:all 0.15s;font-size:13px;user-select:none}
+.nav-item:hover{background:var(--dark3);color:var(--text)}
+.nav-item.active{background:var(--dark3);color:var(--gold);border-right:2px solid var(--gold)}
+.nav-item svg{width:15px;height:15px;flex-shrink:0}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-left:2px}
+#entity-wrap{padding:12px 16px;border-top:1px solid var(--border)}
+#entity-wrap label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px}
+#entity-select{width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);padding:7px 8px;border-radius:6px;font-size:12px;cursor:pointer;outline:none}
+
+/* Main */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:var(--dark2);border-bottom:1px solid var(--border);padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#page-title{font-size:15px;font-weight:600}
+#entity-badge{font-size:11px;padding:3px 10px;border-radius:4px;margin-left:10px;font-weight:600}
+#topbar-right{display:flex;gap:10px;align-items:center}
+#content{flex:1;overflow-y:auto;padding:24px}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.15s;display:inline-flex;align-items:center;gap:6px}
+.btn-gold{background:var(--gold);color:#000}.btn-gold:hover{background:var(--gold-light)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-ghost:hover{background:var(--dark3);color:var(--text)}
+.btn-danger{background:#2A1010;color:var(--red);border:1px solid #3A1515}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+
+/* KPI */
+.kpi-grid{display:grid;gap:14px;margin-bottom:20px}
+.kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi-3{grid-template-columns:repeat(3,1fr)}
+.kpi{background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px}
+.kpi-val{font-size:21px;font-weight:700}
+.kpi-sub{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* Cards */
+.card{background:var(--dark2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:0}
+
+/* HoldCo entity cards */
+.entity-card{border-radius:10px;padding:16px;border:1px solid var(--border);background:var(--dark2);cursor:pointer;transition:all 0.15s}
+.entity-card:hover{border-color:var(--gold)}
+.entity-card .ec-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.entity-card .ec-val{font-size:19px;font-weight:700;margin-bottom:4px}
+.entity-card .ec-sub{font-size:11px;color:var(--text3)}
+.entity-card .ec-bar{height:3px;border-radius:2px;margin-top:10px;background:var(--dark4)}
+.entity-card .ec-fill{height:100%;border-radius:2px}
+
+/* Table */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 14px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text2);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,0.02)}
+td.primary{color:var(--text)}
+.amt-pos{color:var(--green)}.amt-neg{color:var(--red)}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;white-space:nowrap}
+.tag-income{background:#0D2B1A;color:var(--green)}
+.tag-expense{background:#2A0D0D;color:var(--red)}
+.tag-transfer{background:#111827;color:var(--blue)}
+
+/* Form */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:7px;font-size:13px;outline:none;transition:border 0.15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--gold)}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* Modal */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center}
+#overlay.open{display:flex}
+.modal{background:var(--dark2);border:1px solid var(--border);border-radius:12px;width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;padding:26px}
+.modal h2{font-size:17px;font-weight:600;margin-bottom:20px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)}
+
+/* Report */
+.sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.sh h2{font-size:15px;font-weight:600}
+.rcat{font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;font-weight:700}
+.rrow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;color:var(--text2)}
+.rrow.total{font-weight:600;color:var(--text);border-top:1px solid var(--border);margin-top:4px;padding-top:10px;border-bottom:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* Receipt */
+#drop-zone{border:2px dashed var(--border);border-radius:10px;padding:36px;text-align:center;cursor:pointer;transition:all 0.2s}
+#drop-zone:hover,#drop-zone.drag{border-color:var(--gold);background:rgba(201,168,76,0.04)}
+#drop-zone p{color:var(--text3);font-size:13px;margin-top:8px}
+#receipt-img{max-width:100%;max-height:200px;border-radius:8px;margin-top:12px;display:none}
+
+/* AI */
+#ai-box{background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:16px;min-height:180px;max-height:380px;overflow-y:auto;font-size:13px;line-height:1.75;color:var(--text2);margin-bottom:14px}
+.ai-resp{background:var(--dark2);border-radius:8px;border-left:2px solid var(--gold);padding:10px 14px;margin-bottom:14px}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--dark3);padding:3px;border-radius:8px;margin-bottom:18px;width:fit-content}
+.tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);transition:all 0.15s;user-select:none}
+.tab.on{background:var(--dark2);color:var(--text)}
+
+/* Misc */
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp 0.7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:11px 16px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none}
+#toast.show{opacity:1}
+#toast.ok{border-color:var(--green);color:var(--green)}
+#toast.err{border-color:var(--red);color:var(--red)}
+.empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:13px}
+.pbar{height:4px;background:var(--dark4);border-radius:2px;overflow:hidden;margin-top:6px}
+.pfill{height:100%;border-radius:2px;transition:width 0.5s}
+.cost-center-tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:var(--dark4);color:var(--text3);border:1px solid var(--border);margin-left:4px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.section-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-weight:600}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="logo">
+      <div class="holdco">Flintridge Holdings Group LLC</div>
+      <div class="brand">Finance OS</div>
+      <div class="sub">Consolidated · Multi-Entity</div>
+    </div>
+    <nav>
+      <div class="nav-section">HoldCo</div>
+      <div class="nav-item active" data-page="dashboard" onclick="go('dashboard',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Consolidated Dashboard
+      </div>
+      <div class="nav-section">Entities</div>
+      <div class="nav-item" data-page="mbk" onclick="go('mbk',this)">
+        <div class="nav-dot" style="background:#C9A84C"></div>
+        MBK Enterprises
+      </div>
+      <div class="nav-item" data-page="stardust" onclick="go('stardust',this)">
+        <div class="nav-dot" style="background:#7F77DD"></div>
+        Stardust (Real Estate)
+      </div>
+      <div class="nav-item" data-page="eyi" onclick="go('eyi',this)">
+        <div class="nav-dot" style="background:#2ECC71"></div>
+        EYI — Nonprofit
+      </div>
+      <div class="nav-section">Bookkeeping</div>
+      <div class="nav-item" data-page="transactions" onclick="go('transactions',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/></svg>
+        All Transactions
+      </div>
+      <div class="nav-item" data-page="receipts" onclick="go('receipts',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        Receipt Scanner
+      </div>
+      <div class="nav-section">Reports</div>
+      <div class="nav-item" data-page="pnl" onclick="go('pnl',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        P&amp;L / CPA Report
+      </div>
+      <div class="nav-item" data-page="tax" onclick="go('tax',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        Tax Optimizer
+      </div>
+      <div class="nav-item" data-page="cashflow" onclick="go('cashflow',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Cash Flow
+      </div>
+      <div class="nav-section">AI</div>
+      <div class="nav-item" data-page="ai" onclick="go('ai',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        AI Analyst
+      </div>
+    </nav>
+    <div id="entity-wrap">
+      <label>Quick Filter</label>
+      <select id="entity-select" onchange="setEntity(this.value)">
+        <option value="ALL">All Entities (HoldCo)</option>
+        <option value="MBK">MBK Enterprises</option>
+        <option value="STARDUST">Stardust</option>
+        <option value="EYI">EYI (Nonprofit)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="topbar">
+      <div style="display:flex;align-items:center">
+        <div id="page-title">Consolidated Dashboard</div>
+        <div id="entity-badge"></div>
+      </div>
+      <div id="topbar-right">
+        <button class="btn btn-ghost btn-sm" onclick="go('receipts',null)">📷 Scan Receipt</button>
+        <button class="btn btn-gold btn-sm" onclick="openTxModal()">+ Transaction</button>
+      </div>
+    </div>
+    <div id="content"><div class="empty"><span class="spin"></span> Loading Flintridge Holdings data...</div></div>
+  </div>
+</div>
+
+<!-- TX MODAL -->
+<div id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modal-h">Add Transaction</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Date</label><input type="date" id="tx-date"></div>
+      <div class="form-group"><label>Type</label>
+        <select id="tx-type">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+          <option value="transfer">Transfer</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Description</label><input type="text" id="tx-desc" placeholder="What was this for?"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Amount ($)</label><input type="number" id="tx-amount" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><label>Entity</label>
+        <select id="tx-entity" onchange="updateCostCenters(this.value)">
+          <option value="MBK">MBK Enterprises</option>
+          <option value="STARDUST">Stardust (Real Estate)</option>
+          <option value="EYI">EYI (Nonprofit)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Cost Center / Project</label>
+        <select id="tx-cc">
+          <option value="">— None —</option>
+          <option value="TICKETS">Ticket Arbitrage</option>
+          <option value="SCWYBC">SCWYBC</option>
+          <option value="THROWZONE">Throwzone</option>
+          <option value="ATHLETIC">Athletic Capital</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Category</label>
+        <select id="tx-cat">
+          <option>Advertising & Marketing</option><option>Auto & Vehicle</option><option>Bank Fees</option>
+          <option>Contract Labor</option><option>Dues & Subscriptions</option><option>Equipment</option>
+          <option>Insurance</option><option>Legal & Professional</option><option>Meals & Entertainment</option>
+          <option>Mortgage / Debt Service</option><option>Office Supplies</option><option>Property Management</option>
+          <option>Repairs & Maintenance</option><option>Rent & Facilities</option><option>Software & Tech</option>
+          <option>Travel</option><option>Utilities</option><option>Youth Sports Operations</option>
+          <option>NIL / Sponsorship</option><option>Ticket Inventory</option>
+          <option>Revenue - Tickets</option><option>Revenue - Services</option>
+          <option>Revenue - Rent</option><option>Revenue - Sponsorship</option>
+          <option>Revenue - Donations</option><option>Other Income</option><option>Other Expense</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Vendor / Payee</label><input type="text" id="tx-vendor" placeholder="Who paid or received?"></div>
+      <div class="form-group"><label>Tax Deductible</label>
+        <select id="tx-ded"><option value="yes">Yes</option><option value="no">No</option><option value="partial">Partial (50%)</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Notes</label><input type="text" id="tx-notes" placeholder="CPA notes, business purpose..."></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="saveTx()">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCR31vdNxfSZw1fKIxKvQN9uUQOzp3vUhA",
+  authDomain: "koliwad-command-center.firebaseapp.com",
+  projectId: "koliwad-command-center",
+  storageBucket: "koliwad-command-center.firebasestorage.app",
+  messagingSenderId: "88044447580",
+  appId: "1:88044447580:web:4677014a9fd3967e8b0399"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const stor = firebase.storage();
+
+// State
+let page = 'dashboard';
+let entity = 'ALL';
+let txs = [];
+let editId = null;
+
+// Entity config
+const ENTITIES = {
+  MBK:      { name:'MBK Enterprises',      color:'#C9A84C', type:'LLC',      desc:'Ticket arbitrage' },
+  STARDUST: { name:'Stardust',             color:'#7F77DD', type:'LLC',      desc:'Real estate' },
+  EYI:      { name:'EYI',                  color:'#2ECC71', type:'Nonprofit', desc:'Elevate Youth Initiative' },
+};
+
+const COST_CENTERS = {
+  TICKETS:  { name:'Ticket Arbitrage', entity:'MBK' },
+  SCWYBC:   { name:'SCWYBC',           entity:'MBK' },
+  THROWZONE:{ name:'Throwzone',        entity:'MBK' },
+  ATHLETIC: { name:'Athletic Capital', entity:'MBK' },
+};
+
+const CC_BY_ENTITY = {
+  MBK:      [{v:'TICKETS',l:'Ticket Arbitrage'},{v:'SCWYBC',l:'SCWYBC'},{v:'THROWZONE',l:'Throwzone'},{v:'ATHLETIC',l:'Athletic Capital'}],
+  STARDUST: [{v:'VINETA',l:'Vineta'},{v:'PAULETTE',l:'Paulette'},{v:'DETROIT',l:'Detroit'}],
+  EYI:      [],
+};
+
+function updateCostCenters(ent){
+  const sel = $('tx-cc');
+  const ccs = CC_BY_ENTITY[ent]||[];
+  sel.innerHTML = '<option value="">— None —</option>' + ccs.map(c=>`<option value="${c.v}">${c.l}</option>`).join('');
+}
+
+// Helpers
+const $ = id => document.getElementById(id);
+const fmt = n => '$'+Math.abs(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtD = d => { try{ return d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'' }catch{ return d||'' } };
+const sumAmt = (arr,type) => arr.filter(t=>t.type===type).reduce((s,t)=>s+(+t.amount||0),0);
+const filtered = () => entity==='ALL'?txs:txs.filter(t=>t.entity===entity);
+
+function toast(msg,type='ok'){
+  const el=$('toast'); el.textContent=msg; el.className='show '+type;
+  setTimeout(()=>el.className='',3000);
+}
+
+function go(p,el){
+  page=p;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else document.querySelector(`[data-page="${p}"]`)?.classList.add('active');
+  const titles={dashboard:'Consolidated Dashboard',mbk:'MBK Enterprises',stardust:'Stardust — Real Estate',eyi:'EYI — Elevate Youth Initiative',transactions:'All Transactions',receipts:'Receipt Scanner',pnl:'P&L / CPA Report',tax:'Tax Optimizer',cashflow:'Cash Flow',ai:'AI Analyst'};
+  $('page-title').textContent=titles[p]||p;
+  // Set entity badge
+  const entityPages={mbk:'MBK',stardust:'STARDUST',eyi:'EYI'};
+  if(entityPages[p]){
+    const e=ENTITIES[entityPages[p]];
+    $('entity-badge').innerHTML=`<span style="background:${e.color}22;color:${e.color};padding:3px 10px;border-radius:4px;margin-left:10px;font-size:11px;font-weight:600">${e.type}</span>`;
+  } else { $('entity-badge').innerHTML=''; }
+  render();
+}
+
+function setEntity(v){ entity=v; render(); }
+
+async function load(){
+  try{
+    const snap=await db.collection('fhg_transactions').orderBy('date','desc').get();
+    txs=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){ txs=[]; }
+  render();
+}
+
+function render(){
+  const tx=filtered();
+  const c=$('content');
+  if(page==='dashboard') c.innerHTML=pageDashboard();
+  else if(page==='mbk') c.innerHTML=pageEntity('MBK');
+  else if(page==='stardust') c.innerHTML=pageEntity('STARDUST');
+  else if(page==='eyi') c.innerHTML=pageEntity('EYI');
+  else if(page==='transactions') c.innerHTML=pageTx(tx);
+  else if(page==='receipts') c.innerHTML=pageReceipts();
+  else if(page==='pnl') c.innerHTML=pagePnL(tx);
+  else if(page==='tax') c.innerHTML=pageTax(tx);
+  else if(page==='cashflow') c.innerHTML=pageCashFlow(tx);
+  else if(page==='ai') c.innerHTML=pageAI();
+}
+
+// ── CONSOLIDATED DASHBOARD ────────────────────────────────
+function pageDashboard(){
+  const all=txs;
+  const totalInc=sumAmt(all,'income'), totalExp=sumAmt(all,'expense'), net=totalInc-totalExp;
+  const ded=all.filter(t=>t.type==='expense'&&t.deductible==='yes').reduce((s,t)=>s+(+t.amount||0),0);
+  return `
+  <div style="margin-bottom:20px">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Flintridge Holdings Group LLC — Consolidated View</div>
+  </div>
+  <div class="kpi-grid kpi-4">
+    <div class="kpi"><div class="kpi-label">Consolidated Revenue</div><div class="kpi-val amt-pos">${fmt(totalInc)}</div><div class="kpi-sub">All entities</div></div>
+    <div class="kpi"><div class="kpi-label">Consolidated Expenses</div><div class="kpi-val amt-neg">${fmt(totalExp)}</div><div class="kpi-sub">All entities</div></div>
+    <div class="kpi"><div class="kpi-label">Net Profit / Loss</div><div class="kpi-val" style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'':'-'}${fmt(net)}</div><div class="kpi-sub">HoldCo consolidated</div></div>
+    <div class="kpi"><div class="kpi-label">Tax Deductions</div><div class="kpi-val" style="color:var(--amber)">${fmt(ded)}</div><div class="kpi-sub">Deductible logged</div></div>
+  </div>
+
+  <div class="section-label" style="margin-bottom:12px">Subsidiary Performance</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px">
+    ${['MBK','STARDUST','EYI'].map(e=>{
+      const et=txs.filter(t=>t.entity===e);
+      const i=sumAmt(et,'income'),x=sumAmt(et,'expense'),n=i-x;
+      const pct=i>0?Math.min(100,x/i*100):100;
+      return `<div class="entity-card" onclick="go('${e.toLowerCase()}',document.querySelector('[data-page=\\'${e.toLowerCase()}\\']'))">
+        <div class="ec-name" style="color:${ENTITIES[e].color}">${ENTITIES[e].name}</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:10px">${ENTITIES[e].desc} · ${ENTITIES[e].type}</div>
+        <div class="ec-val" style="color:${n>=0?'var(--green)':'var(--red)'}">${n>=0?'':'-'}${fmt(n)}</div>
+        <div class="ec-sub">${fmt(i)} in · ${fmt(x)} out · ${et.length} tx</div>
+        <div class="ec-bar"><div class="ec-fill" style="width:${Math.max(2,100-pct)}%;background:${n>=0?'var(--green)':'var(--red)'}"></div></div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <div class="card">
+    <div class="sh"><h2>Recent Transactions — All Entities</h2><button class="btn btn-ghost btn-sm" onclick="go('transactions',null)">View All</button></div>
+    ${all.length===0?`<div class="empty">No transactions yet. Add your first one above.</div>`:`
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Description</th><th>Entity</th><th>Cost Center</th><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${all.slice(0,12).map(t=>`<tr>
+        <td style="white-space:nowrap">${fmtD(t.date)}</td>
+        <td class="primary">${t.description||''}</td>
+        <td><span style="font-size:11px;color:${(ENTITIES[t.entity]||{}).color||'var(--gold)'};font-weight:600">${(ENTITIES[t.entity]||{}).name||t.entity}</span></td>
+        <td>${t.costCenter?`<span class="cost-center-tag">${t.costCenter}</span>`:''}</td>
+        <td style="font-size:12px">${t.category||''}</td>
+        <td class="${t.type==='income'?'amt-pos':'amt-neg'}" style="font-weight:600">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`}
+  </div>`;
+}
+
+// ── ENTITY PAGE ───────────────────────────────────────────
+function pageEntity(ent){
+  const e=ENTITIES[ent];
+  const et=txs.filter(t=>t.entity===ent);
+  const inc=sumAmt(et,'income'),exp=sumAmt(et,'expense'),net=inc-exp;
+  const byCat=(type)=>{const m={};et.filter(t=>t.type===type).forEach(t=>{const c=t.category||'Other';m[c]=(m[c]||0)+(+t.amount||0)});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+
+  // Cost center breakdown for MBK
+  let ccSection='';
+  if(ent==='MBK'){
+    const ccs=['TICKETS','SCWYBC','THROWZONE','ATHLETIC'];
+    const ccData=ccs.map(cc=>{const ct=et.filter(t=>t.costCenter===cc);return {cc,i:sumAmt(ct,'income'),x:sumAmt(ct,'expense'),c:ct.length}}).filter(x=>x.c>0);
+    if(ccData.length) ccSection=`
+    <div class="card" style="margin-bottom:16px">
+      <div class="sh"><h2>Cost Centers</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+        ${ccData.map(({cc,i,x})=>{const n=i-x;return `<div style="background:var(--dark3);border-radius:8px;padding:12px;border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${COST_CENTERS[cc]?.name||cc}</div>
+          <div style="font-size:15px;font-weight:700;color:${n>=0?'var(--green)':'var(--red)'}">${n>=0?'':'-'}${fmt(n)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmt(i)} in · ${fmt(x)} out</div>
+        </div>`}).join('')}
+      </div>
+    </div>`;
+  }
+
+  // Property breakdown for Stardust
+  let propSection='';
+  if(ent==='STARDUST'){
+    const props=['VINETA','PAULETTE','DETROIT'];
+    const propData=props.map(p=>{const pt=et.filter(t=>t.costCenter===p);return {p,i:sumAmt(pt,'income'),x:sumAmt(pt,'expense'),c:pt.length}}).filter(x=>x.c>0);
+    if(propData.length) propSection=`
+    <div class="card" style="margin-bottom:16px">
+      <div class="sh"><h2>Properties</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+        ${propData.map(({p,i,x})=>{const n=i-x;return `<div style="background:var(--dark3);border-radius:8px;padding:12px;border:1px solid var(--border)">
+          <div style="font-size:11px;color:${ENTITIES.STARDUST.color};font-weight:600;margin-bottom:6px">${p}</div>
+          <div style="font-size:15px;font-weight:700;color:${n>=0?'var(--green)':'var(--red)'}">${n>=0?'':'-'}${fmt(n)}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px">${fmt(i)} in · ${fmt(x)} out</div>
+        </div>`}).join('')}
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div style="border-left:3px solid ${e.color};padding-left:14px;margin-bottom:20px">
+    <div style="font-size:11px;color:${e.color};font-weight:700;text-transform:uppercase;letter-spacing:1px">${e.type}</div>
+    <div style="font-size:18px;font-weight:700">${e.name}</div>
+    <div style="font-size:12px;color:var(--text3)">${e.desc}${ent==='EYI'?' · EIN 39-2157236':''}</div>
+  </div>
+  <div class="kpi-grid kpi-3" style="margin-bottom:20px">
+    <div class="kpi"><div class="kpi-label">Revenue</div><div class="kpi-val amt-pos">${fmt(inc)}</div></div>
+    <div class="kpi"><div class="kpi-label">Expenses</div><div class="kpi-val amt-neg">${fmt(exp)}</div></div>
+    <div class="kpi"><div class="kpi-label">Net</div><div class="kpi-val" style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'':'-'}${fmt(net)}</div></div>
+  </div>
+  ${ccSection}${propSection}
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="card"><div class="rcat">Revenue</div>${byCat('income').map(([c,v])=>`<div class="rrow"><span>${c}</span><span class="amt-pos">${fmt(v)}</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;padding:8px 0">None recorded</div>'}<div class="rrow total"><span>Total</span><span class="amt-pos">${fmt(inc)}</span></div></div>
+    <div class="card"><div class="rcat">Expenses</div>${byCat('expense').map(([c,v])=>`<div class="rrow"><span>${c}</span><span class="amt-neg">${fmt(v)}</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;padding:8px 0">None recorded</div>'}<div class="rrow total"><span>Total</span><span class="amt-neg">${fmt(exp)}</span></div></div>
+  </div>
+  <div class="card">
+    <div class="sh"><h2>Transactions</h2><button class="btn btn-gold btn-sm" onclick="openTxModal()">+ Add</button></div>
+    ${et.length===0?`<div class="empty">No transactions for ${e.name} yet.</div>`:`
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Description</th><th>Cost Center</th><th>Category</th><th>Ded.</th><th>Amount</th><th></th></tr></thead>
+      <tbody>${et.map(t=>`<tr>
+        <td style="white-space:nowrap">${fmtD(t.date)}</td>
+        <td class="primary">${t.description||''}</td>
+        <td>${t.costCenter?`<span class="cost-center-tag">${t.costCenter}</span>`:''}</td>
+        <td style="font-size:12px">${t.category||''}</td>
+        <td style="font-size:11px;color:${t.deductible==='yes'?'var(--green)':t.deductible==='partial'?'var(--amber)':'var(--text3)'}">${t.deductible||'-'}</td>
+        <td class="${t.type==='income'?'amt-pos':'amt-neg'}" style="font-weight:600">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-xs" onclick="editTx('${t.id}')">Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="delTx('${t.id}')" style="margin-left:4px">Del</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>`}
+  </div>`;
+}
+
+// ── ALL TRANSACTIONS ──────────────────────────────────────
+function pageTx(tx){
+  return `
+  <div class="sh">
+    <input type="text" id="srch" placeholder="Search all transactions..." onkeyup="srchTx(this.value)" style="background:var(--dark2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:13px;width:260px;outline:none">
+    <button class="btn btn-gold btn-sm" onclick="openTxModal()">+ Add Transaction</button>
+  </div>
+  <div class="card">
+    <div class="tbl-wrap"><table id="tx-tbl">
+      <thead><tr><th>Date</th><th>Description</th><th>Entity</th><th>Cost Center</th><th>Category</th><th>Vendor</th><th>Type</th><th>Ded.</th><th>Amount</th><th></th></tr></thead>
+      <tbody>${tx.length===0?`<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text3)">No transactions yet</td></tr>`:
+      tx.map(t=>`<tr>
+        <td style="white-space:nowrap">${fmtD(t.date)}</td>
+        <td class="primary">${t.description||''}</td>
+        <td><span style="font-size:11px;color:${(ENTITIES[t.entity]||{}).color||'var(--gold)'};font-weight:600">${(ENTITIES[t.entity]||{}).name||t.entity||''}</span></td>
+        <td>${t.costCenter?`<span class="cost-center-tag">${t.costCenter}</span>`:''}</td>
+        <td style="font-size:12px">${t.category||''}</td>
+        <td style="font-size:12px;color:var(--text3)">${t.vendor||''}</td>
+        <td><span class="tag tag-${t.type||'expense'}">${t.type||'expense'}</span></td>
+        <td style="font-size:11px;color:${t.deductible==='yes'?'var(--green)':t.deductible==='partial'?'var(--amber)':'var(--text3)'}">${t.deductible||'-'}</td>
+        <td class="${t.type==='income'?'amt-pos':'amt-neg'}" style="font-weight:600;white-space:nowrap">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost btn-xs" onclick="editTx('${t.id}')">Edit</button>
+          <button class="btn btn-danger btn-xs" onclick="delTx('${t.id}')" style="margin-left:4px">Del</button>
+        </td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function srchTx(q){ document.querySelectorAll('#tx-tbl tbody tr').forEach(r=>{ r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'; }); }
+
+// ── RECEIPTS ──────────────────────────────────────────────
+function pageReceipts(){
+  return `<div class="card" style="margin-bottom:20px">
+    <h2 style="font-size:15px;margin-bottom:8px">AI Receipt Scanner</h2>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:20px">Upload a receipt — Claude reads it, extracts the data, and creates the transaction. Receipt stored in Firebase Storage.</p>
+    <div id="drop-zone" onclick="$('r-file').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropR(event)">
+      <div style="font-size:28px">📄</div>
+      <p>Click or drag a receipt image here</p>
+      <p style="font-size:11px;margin-top:4px">JPG, PNG, PDF accepted</p>
+    </div>
+    <input type="file" id="r-file" accept="image/*,application/pdf" style="display:none" onchange="scanR(this.files[0])">
+    <img id="receipt-img">
+    <div id="r-status" style="font-size:13px;color:var(--text2);margin-top:10px"></div>
+    <div id="r-result"></div>
+  </div>`;
+}
+
+function dropR(e){ e.preventDefault(); $('drop-zone').classList.remove('drag'); scanR(e.dataTransfer.files[0]); }
+
+async function scanR(file){
+  if(!file) return;
+  const status=$('r-status'),result=$('r-result'),img=$('receipt-img');
+  if(file.type.startsWith('image/')){ const fr=new FileReader(); fr.onload=e=>{img.src=e.target.result;img.style.display='block'}; fr.readAsDataURL(file); }
+  status.innerHTML='<span class="spin"></span> Uploading to Firebase Storage...';
+  try{
+    const ref=stor.ref(`fhg_receipts/${Date.now()}_${file.name}`);
+    await ref.put(file);
+    const url=await ref.getDownloadURL();
+    status.innerHTML='<span class="spin"></span> Claude is reading the receipt...';
+    const b64=await new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result.split(',')[1]);fr.onerror=rej;fr.readAsDataURL(file);});
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':'','anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,
+        system:'Extract receipt data. Return ONLY a valid JSON object (no markdown) with: vendor(string), amount(number), date(YYYY-MM-DD), category(string), description(brief string), confidence(high|medium|low)',
+        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type.startsWith('image/')?file.type:'image/jpeg',data:b64}},{type:'text',text:'Extract all receipt data.'}]}]
+      })
+    });
+    const d=await resp.json();
+    let ex={};
+    try{ex=JSON.parse((d.content?.[0]?.text||'{}').replace(/```json|```/g,'').trim());}catch{}
+    status.innerHTML='<span style="color:var(--green)">✓ Scanned — review and confirm</span>';
+    result.innerHTML=`<div style="background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:20px;margin-top:16px">
+      <div class="form-row"><div class="form-group"><label>Vendor</label><input id="rv" value="${ex.vendor||''}"></div><div class="form-group"><label>Amount ($)</label><input type="number" id="ra" value="${ex.amount||''}"></div></div>
+      <div class="form-row"><div class="form-group"><label>Date</label><input type="date" id="rd" value="${ex.date||''}"></div><div class="form-group"><label>Category</label><input id="rc" value="${ex.category||'Other Expense'}"></div></div>
+      <div class="form-group"><label>Description</label><input id="rdesc" value="${ex.description||''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Entity</label><select id="re"><option value="MBK">MBK Enterprises</option><option value="STARDUST">Stardust</option><option value="EYI">EYI</option></select></div>
+        <div class="form-group"><label>AI Confidence</label><input value="${ex.confidence||'unknown'}" readonly style="color:var(--text3)"></div>
+      </div>
+      <button class="btn btn-gold" onclick="saveRTx('${url}')">Save as Transaction</button>
+    </div>`;
+  }catch(e){status.innerHTML=`<span style="color:var(--red)">Error: ${e.message}</span>`;}
+}
+
+async function saveRTx(url){
+  const data={vendor:$('rv').value,amount:parseFloat($('ra').value)||0,date:$('rd').value,category:$('rc').value,description:$('rdesc').value,entity:$('re').value,type:'expense',deductible:'yes',receiptUrl:url,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
+  try{await db.collection('fhg_transactions').add(data);toast('Receipt saved as transaction ✓');await load();$('r-result').innerHTML='';$('receipt-img').style.display='none';$('r-status').innerHTML='';}
+  catch(e){toast('Error: '+e.message,'err');}
+}
+
+// ── P&L ───────────────────────────────────────────────────
+function pagePnL(tx){
+  const inc=sumAmt(tx,'income'),exp=sumAmt(tx,'expense'),net=inc-exp;
+  const byCat=(arr,type)=>{const m={};arr.filter(t=>t.type===type).forEach(t=>{const c=t.category||'Other';m[c]=(m[c]||0)+(+t.amount||0)});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+    <div class="tabs">
+      <div class="tab on" onclick="pTab('summary',this)">Consolidated</div>
+      <div class="tab" onclick="pTab('entity',this)">By Entity</div>
+      <div class="tab" onclick="pTab('category',this)">By Category</div>
+    </div>
+    <button class="btn btn-gold btn-sm" onclick="genCPA()">Generate CPA Report</button>
+  </div>
+  <div id="pt-summary">
+    <div class="kpi-grid kpi-3"><div class="kpi"><div class="kpi-label">Gross Revenue</div><div class="kpi-val amt-pos">${fmt(inc)}</div></div><div class="kpi"><div class="kpi-label">Total Expenses</div><div class="kpi-val amt-neg">${fmt(exp)}</div></div><div class="kpi"><div class="kpi-label">Net Profit / Loss</div><div class="kpi-val" style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'':'-'}${fmt(net)}</div></div></div>
+    <div class="grid2">
+      <div class="card"><div class="rcat">Revenue</div>${byCat(tx,'income').map(([c,v])=>`<div class="rrow"><span>${c}</span><span class="amt-pos">${fmt(v)}</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;padding:8px 0">None</div>'}<div class="rrow total"><span>Total</span><span class="amt-pos">${fmt(inc)}</span></div></div>
+      <div class="card"><div class="rcat">Expenses</div>${byCat(tx,'expense').map(([c,v])=>`<div class="rrow"><span>${c}</span><span class="amt-neg">${fmt(v)}</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;padding:8px 0">None</div>'}<div class="rrow total"><span>Total</span><span class="amt-neg">${fmt(exp)}</span></div></div>
+    </div>
+  </div>
+  <div id="pt-entity" style="display:none">
+    ${['MBK','STARDUST','EYI'].map(e=>{
+      const et=txs.filter(t=>t.entity===e);
+      const i=sumAmt(et,'income'),x=sumAmt(et,'expense'),n=i-x;
+      return `<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:13px;color:${ENTITIES[e].color};font-weight:600">${ENTITIES[e].name}</span><span style="font-size:17px;font-weight:700;color:${n>=0?'var(--green)':'var(--red)'}">${n>=0?'':'-'}${fmt(n)}</span></div><div class="rrow"><span>Revenue</span><span class="amt-pos">${fmt(i)}</span></div><div class="rrow"><span>Expenses</span><span class="amt-neg">${fmt(x)}</span></div></div>`;
+    }).join('')}
+  </div>
+  <div id="pt-category" style="display:none">
+    <div class="card">${[...new Set(tx.map(t=>t.category))].filter(Boolean).map(cat=>{const ct=tx.filter(t=>t.category===cat);const tot=ct.reduce((s,t)=>s+(t.type==='income'?1:-1)*(+t.amount||0),0);return `<div class="rrow"><span>${cat} <span style="color:var(--text3);font-size:11px">(${ct.length})</span></span><span class="${tot>=0?'amt-pos':'amt-neg'}">${tot>=0?'+':'-'}${fmt(tot)}</span></div>`;}).join('')||'<div class="empty">No data</div>'}</div>
+  </div>
+  <div id="cpa-out" style="margin-top:20px"></div>`;
+}
+
+function pTab(t,el){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));el.classList.add('on');['summary','entity','category'].forEach(x=>{const d=$('pt-'+x);if(d)d.style.display=x===t?'block':'none';});}
+
+async function genCPA(){
+  const tx=filtered(),out=$('cpa-out');if(!out)return;
+  out.innerHTML=`<div class="card"><span class="spin"></span> Generating CPA report...</div>`;
+  const summary={holdco:'Flintridge Holdings Group LLC',entity:entity==='ALL'?'Consolidated':ENTITIES[entity]?.name,totalIncome:sumAmt(tx,'income'),totalExpenses:sumAmt(tx,'expense'),netProfit:sumAmt(tx,'income')-sumAmt(tx,'expense'),txCount:tx.length,entities:['MBK','STARDUST','EYI'].map(e=>{const et=txs.filter(t=>t.entity===e);return {entity:ENTITIES[e].name,income:sumAmt(et,'income'),expenses:sumAmt(et,'expense'),net:sumAmt(et,'income')-sumAmt(et,'expense')}})};
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':'','anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1500,
+        system:'You are a CPA preparing financial reports for Flintridge Holdings Group LLC, a HoldCo owned by Sonny Koliwad. Subsidiaries: MBK Enterprises (ticket arbitrage — Dodgers/Lakers), Stardust LLC (real estate — Vineta primary residence with Unison shared equity, Paulette rental property), EYI/Elevate Youth Initiative (youth nonprofit, EIN 39-2157236). Sonny is a high-income W-2 professional at JPL/Caltech transitioning to full-time entrepreneurship. Generate a professional, structured CPA-ready P&L report with entity-level breakdown, key observations, and any items requiring attention.',
+        messages:[{role:'user',content:`Generate CPA P&L report: ${JSON.stringify(summary,null,2)}`}]
+      })
+    });
+    const d=await r.json();const text=d.content?.[0]?.text||'No response.';
+    out.innerHTML=`<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:14px"><h2 style="font-size:15px">CPA Report — Flintridge Holdings</h2><button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText($('cpa-txt').textContent).then(()=>toast('Copied ✓'))">Copy</button></div><div id="cpa-txt" style="font-size:13px;line-height:1.8;color:var(--text2);white-space:pre-wrap">${text}</div></div>`;
+  }catch(e){out.innerHTML=`<div class="card" style="color:var(--red)">Error: ${e.message}</div>`;}
+}
+
+// ── TAX ───────────────────────────────────────────────────
+function pageTax(tx){
+  const ded=tx.filter(t=>t.type==='expense'&&t.deductible==='yes');
+  const part=tx.filter(t=>t.type==='expense'&&t.deductible==='partial');
+  const tD=ded.reduce((s,t)=>s+(+t.amount||0),0),tP=part.reduce((s,t)=>s+(+t.amount||0),0)*0.5;
+  const catMap={};ded.forEach(t=>{const c=t.category||'Other';catMap[c]=(catMap[c]||0)+(+t.amount||0)});
+  return `
+  <div class="kpi-grid kpi-3">
+    <div class="kpi"><div class="kpi-label">Fully Deductible</div><div class="kpi-val amt-pos">${fmt(tD)}</div><div class="kpi-sub">${ded.length} items</div></div>
+    <div class="kpi"><div class="kpi-label">50% Deductible (est.)</div><div class="kpi-val" style="color:var(--amber)">${fmt(tP)}</div><div class="kpi-sub">${part.length} partial items</div></div>
+    <div class="kpi"><div class="kpi-label">Est. Tax Savings @ 37%</div><div class="kpi-val" style="color:var(--purple)">${fmt((tD+tP)*0.37)}</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="rcat">Schedule C — By Category</div>${Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="rrow"><span>${c}</span><span class="amt-pos">${fmt(v)}</span></div>`).join('')||'<div style="color:var(--text3);font-size:13px;padding:8px 0">Log deductible expenses to see breakdown</div>'}<div class="rrow total"><span>Est. Total Deductions</span><span style="color:var(--green)">${fmt(tD+tP)}</span></div></div>
+    <div class="card"><div class="rcat">AI Tax Analysis</div><div id="tax-ai" style="color:var(--text2);font-size:13px;line-height:1.7">Click below for AI-powered tax optimization for Flintridge Holdings.</div><button class="btn btn-gold" style="margin-top:14px" onclick="runTaxAI()">Run Tax Analysis</button></div>
+  </div>`;
+}
+
+async function runTaxAI(){
+  const el=$('tax-ai');if(!el)return;
+  el.innerHTML='<span class="spin"></span> Analyzing...';
+  const tx=filtered().slice(0,60).map(t=>({date:t.date,type:t.type,amount:t.amount,category:t.category,entity:t.entity,deductible:t.deductible,costCenter:t.costCenter}));
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':'','anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,
+        system:'You are a CPA and tax strategist for Sonny Koliwad, operating Flintridge Holdings Group LLC (HoldCo) with subsidiaries: MBK Enterprises (ticket arbitrage), Stardust LLC (real estate — Vineta primary + Paulette rental), EYI nonprofit. He is a high-income W-2 at JPL transitioning to full-time entrepreneurship. Give specific, actionable tax optimization advice covering entity structuring, deduction opportunities, real estate tax strategy (depreciation, Paulette rental income, Unison shared equity implications), charitable giving through EYI, and Schedule C optimization. Use bullet points. Be concise and specific.',
+        messages:[{role:'user',content:`Analyze and give tax optimization recommendations: ${JSON.stringify(tx)}`}]
+      })
+    });
+    const d=await r.json();el.innerHTML=(d.content?.[0]?.text||'No response').replace(/\n/g,'<br>');
+  }catch(e){el.innerHTML=`<span style="color:var(--red)">Error: ${e.message}</span>`;}
+}
+
+// ── CASH FLOW ─────────────────────────────────────────────
+function pageCashFlow(tx){
+  const months={};
+  tx.forEach(t=>{const m=t.date?t.date.substring(0,7):'Unknown';if(!months[m])months[m]={i:0,x:0};if(t.type==='income')months[m].i+=(+t.amount||0);else if(t.type==='expense')months[m].x+=(+t.amount||0);});
+  const sorted=Object.entries(months).sort(([a],[b])=>a.localeCompare(b));
+  const tI=Object.values(months).reduce((s,m)=>s+m.i,0),tX=Object.values(months).reduce((s,m)=>s+m.x,0);
+  return `
+  <div class="kpi-grid kpi-3"><div class="kpi"><div class="kpi-label">Total Cash In</div><div class="kpi-val amt-pos">${fmt(tI)}</div></div><div class="kpi"><div class="kpi-label">Total Cash Out</div><div class="kpi-val amt-neg">${fmt(tX)}</div></div><div class="kpi"><div class="kpi-label">Net Cash Flow</div><div class="kpi-val" style="color:${tI-tX>=0?'var(--green)':'var(--red)'}">${fmt(tI-tX)}</div></div></div>
+  <div class="card"><h2 style="font-size:15px;margin-bottom:18px">Monthly Breakdown</h2>
+  ${sorted.length===0?`<div class="empty">No data yet</div>`:sorted.map(([m,d])=>{const net=d.i-d.x,pct=d.i>0?Math.min(100,d.x/d.i*100):100;return `<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:13px;font-weight:500">${m}</span><span style="font-size:13px;font-weight:600;color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':'-'}${fmt(net)}</span></div><div style="font-size:11px;color:var(--text3);margin-bottom:5px"><span class="amt-pos">In: ${fmt(d.i)}</span> · <span class="amt-neg">Out: ${fmt(d.x)}</span></div><div class="pbar"><div class="pfill" style="width:${Math.max(2,100-pct)}%;background:${net>=0?'var(--green)':'var(--red)'}"></div></div></div>`;}).join('')}</div>`;
+}
+
+// ── AI ANALYST ────────────────────────────────────────────
+function pageAI(){
+  return `<div class="card">
+    <h2 style="font-size:15px;margin-bottom:6px">AI Financial Analyst — Flintridge Holdings</h2>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:16px">Ask anything about your consolidated financials, entity performance, tax strategy, or FIRE planning.</p>
+    <div id="ai-box"><div style="color:var(--text3)">Ask me anything about Flintridge Holdings finances...</div></div>
+    <div style="display:flex;gap:10px;margin-bottom:12px">
+      <input type="text" id="ai-q" placeholder="e.g. How is Stardust performing? What should I tell my CPA?" onkeydown="if(event.key==='Enter')askAI()" style="flex:1;background:var(--dark3);border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-size:13px;outline:none">
+      <button class="btn btn-gold" onclick="askAI()">Ask</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${['Best performing entity?','Stardust tax strategy','MBK cost center breakdown','What to tell my CPA','FIRE transition impact'].map(q=>`<button class="btn btn-ghost btn-xs" onclick="$('ai-q').value='${q}';askAI()">${q}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+async function askAI(){
+  const q=$('ai-q')?.value?.trim();if(!q)return;
+  const box=$('ai-box');if(!box)return;
+  box.innerHTML+=`<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px">You</div><div>${q}</div></div>`;
+  box.innerHTML+=`<div id="ai-loading"><span class="spin"></span> Thinking...</div>`;
+  box.scrollTop=box.scrollHeight;
+  $('ai-q').value='';
+  const tx=filtered();
+  const ctx={holdco:'Flintridge Holdings Group LLC',entity:entity==='ALL'?'Consolidated':ENTITIES[entity]?.name,totalIncome:sumAmt(tx,'income'),totalExpenses:sumAmt(tx,'expense'),txCount:tx.length,entities:['MBK','STARDUST','EYI'].map(e=>{const et=txs.filter(t=>t.entity===e);return {entity:ENTITIES[e].name,income:sumAmt(et,'income'),expenses:sumAmt(et,'expense'),net:sumAmt(et,'income')-sumAmt(et,'expense')}})};
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':'','anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,
+        system:`You are an expert CPA, financial advisor, and business strategist for Sonny Koliwad. HoldCo: Flintridge Holdings Group LLC. Subsidiaries: MBK Enterprises (ticket arbitrage — Dodgers/Lakers season tickets via resale broker), Stardust LLC (real estate — Vineta primary residence with Unison shared equity, Paulette rental/exit candidate, potential Detroit acquisition via HELOC), EYI/Elevate Youth Initiative (youth nonprofit, EIN 39-2157236, Sonny is President). MBK cost centers: Ticket Arbitrage, SCWYBC (baseball tournament venture with Brandon McDaniel & Andrew Friedman, targeting Dodger Stadium), Throwzone (batting facility acquisition Canyon Country, partner Brandon McDaniel), Athletic Capital (subscription financial intelligence platform for sports families, $297/$697/$1497/mo tiers). Sonny is a high-income W-2 at JPL/Caltech transitioning to full-time entrepreneurship. FIRE transition actively modeled. Current financial context: ${JSON.stringify(ctx)}`,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const d=await r.json();const text=d.content?.[0]?.text||'No response.';
+    const loading=$('ai-loading');
+    if(loading) loading.outerHTML=`<div class="ai-resp"><div style="font-size:10px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px">Flintridge AI Analyst</div>${text.replace(/\n/g,'<br>')}</div>`;
+    box.scrollTop=box.scrollHeight;
+  }catch(e){const loading=$('ai-loading');if(loading)loading.outerHTML=`<div style="color:var(--red);margin-bottom:12px">Error: ${e.message}</div>`;}
+}
+
+// ── TX MODAL ──────────────────────────────────────────────
+function openTxModal(id){
+  editId=id||null;
+  $('modal-h').textContent=id?'Edit Transaction':'Add Transaction';
+  if(id){
+    const t=txs.find(x=>x.id===id);
+    if(t){
+      $('tx-date').value=t.date||'';$('tx-type').value=t.type||'expense';
+      $('tx-desc').value=t.description||'';$('tx-amount').value=t.amount||'';
+      $('tx-entity').value=t.entity||'MBK';updateCostCenters(t.entity||'MBK');
+      $('tx-cc').value=t.costCenter||'';$('tx-cat').value=t.category||'Other Expense';
+      $('tx-vendor').value=t.vendor||'';$('tx-ded').value=t.deductible||'yes';$('tx-notes').value=t.notes||'';
+    }
+  } else {
+    $('tx-date').value=new Date().toISOString().split('T')[0];
+    $('tx-type').value='expense';$('tx-desc').value='';$('tx-amount').value='';
+    const ent=entity!=='ALL'?entity:'MBK';
+    $('tx-entity').value=ent;updateCostCenters(ent);
+    $('tx-cc').value='';$('tx-cat').value='Other Expense';$('tx-vendor').value='';$('tx-ded').value='yes';$('tx-notes').value='';
+  }
+  $('overlay').classList.add('open');
+}
+
+function closeModal(){$('overlay').classList.remove('open');}
+
+async function saveTx(){
+  const data={
+    date:$('tx-date').value,type:$('tx-type').value,description:$('tx-desc').value,
+    amount:parseFloat($('tx-amount').value)||0,entity:$('tx-entity').value,
+    costCenter:$('tx-cc').value||'',category:$('tx-cat').value,
+    vendor:$('tx-vendor').value,deductible:$('tx-ded').value,notes:$('tx-notes').value,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try{
+    if(editId){await db.collection('fhg_transactions').doc(editId).update(data);toast('Transaction updated ✓');}
+    else{data.createdAt=firebase.firestore.FieldValue.serverTimestamp();await db.collection('fhg_transactions').add(data);toast('Transaction saved ✓');}
+    closeModal();await load();
+  }catch(e){toast('Error: '+e.message,'err');}
+}
+
+function editTx(id){openTxModal(id);}
+async function delTx(id){
+  if(!confirm('Delete this transaction?'))return;
+  try{await db.collection('fhg_transactions').doc(id).delete();toast('Deleted');await load();}
+  catch(e){toast('Error: '+e.message,'err');}
+}
+
+// Init
+load();
+</script>
+</body>
+</html>
